@@ -70,13 +70,17 @@ class PowerSupply(list):
         data = str(self.header) + struct.pack('512B', *data)
         self.socket.send(data)
     
-class FixtureRGB(object):
+class Fixture(object):
+    def __init__(self, address):
+        self.address = address
+
+class FixtureRGB(Fixture):
     _RED = (0, 0xff)
     _GRN = (0, 0xff)
     _BLU = (0, 0xff)
 
     def __init__(self, address, red=0, green=0, blue=0):
-        self.address = address
+        super(FixtureRGB, self).__init__(address)
         self.red = red
         self.green = green
         self.blue = blue
