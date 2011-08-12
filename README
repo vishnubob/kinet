@@ -64,7 +64,8 @@ To change a value on the lights, you would simply tell the PowerSupply to go():
 FadeIter is a convenience class to allow smooth transitions between two
 different scenes.  It will fade all the 512 channels between two different
 scenes for a duration of time.  For example, if we wanted to fade the first
-fixture from all off to entirely on, we would simply write the following:
+fixture from all off to entirely on over a ten second period, we would simply
+write the following:
 
 >>> pds1 = PowerSupply("192.168.1.120")
 >>> pds1.append(fix)
