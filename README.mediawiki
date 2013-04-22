@@ -80,8 +80,7 @@ write the following:
 ==Examples of kinet.py in the Wild==
 
 A group of students from Drexel used kinet.py to drive a
-[http://arstechnica.com/gaming/2013/04/selling-coding-and-playing-the-worlds-largest-videogame/
-version of Pong in Philadelphia].
+[http://arstechnica.com/gaming/2013/04/selling-coding-and-playing-the-worlds-largest-videogame/ 30-story version of Pong in Philadelphia].
 
 [https://github.com/Dewb Michael Dewberry] ported kinet.py to
 C++ to drive a ColorKinetics video wall of LEDs.  You can find it within his
