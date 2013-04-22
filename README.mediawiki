@@ -81,7 +81,7 @@ write the following:
 
 In April, 2013, a group of students from Drexel used kinet.py to drive a
 [http://arstechnica.com/gaming/2013/04/selling-coding-and-playing-the-worlds-largest-videogame/
-30-story version of Pong in Philadelphia].
+version of Pong in Philadelphia].
 
 My good friend, [https://github.com/Dewb Michael Dewberry], ported kinet.py to
 C++ to drive a ColorKinetics video wall of LEDs.  You can find it within his
@@ -90,5 +90,6 @@ C++ to drive a ColorKinetics video wall of LEDs.  You can find it within his
 ==Dedication==
 
 This library is dedicated to the memory of Kevin "Frostbyte" McCormick, a
-brilliant artist who continues to be a source of inspiriation in everything I
-do.
+brilliant light artist who continues to be a source of inspiriation for the
+EE/LED community at large.
+
