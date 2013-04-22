@@ -79,11 +79,11 @@ write the following:
 
 ==Examples of kinet.py in the Wild==
 
-In April, 2013, a group of students from Drexel used kinet.py to drive a
+A group of students from Drexel used kinet.py to drive a
 [http://arstechnica.com/gaming/2013/04/selling-coding-and-playing-the-worlds-largest-videogame/
 version of Pong in Philadelphia].
 
-My good friend, [https://github.com/Dewb Michael Dewberry], ported kinet.py to
+[https://github.com/Dewb Michael Dewberry] ported kinet.py to
 C++ to drive a ColorKinetics video wall of LEDs.  You can find it within his
 [https://github.com/Dewb/alphadep alphadep] project.
 
