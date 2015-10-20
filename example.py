@@ -28,7 +28,7 @@ def fader(pds1, cnt):
 
 if __name__ == '__main__':
     # Our ethernet attached power supply.
-    pds = PowerSupply("192.168.1.120")
+    pds = PowerSupply("192.168.1.121")
 
     # Our light fixtures
     fix1 = FixtureRGB(0)
