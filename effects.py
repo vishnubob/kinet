@@ -4,6 +4,7 @@ import random
 import types
 import colorsys
 import wub
+import threading
 from kinet import *
 
 class Wrapper(object):
@@ -139,6 +140,32 @@ class Decay(Node):
         value = min(self.max_value, max(self.min_value, self.max_value - ratio * _range))
         return value
 
+class Neuron(Node):
+    Inputs = {
+        "decay_time": 0.1,
+        "min_value": 0.1,
+        "max_value": 1.0,
+        "step_value": 0.1,
+        "offset": 0.0,
+    }
+
+    def __init__(self, *args, **kw):
+        super(Neuron, self).__init__(*args, **kw)
+        self.trigger()
+
+    def trigger(self):
+        self.trigger_ts = time.time()
+        self.value += self.step_value
+
+    @Output
+    def output(self):
+        elapsed = time.time() - self.trigger_ts
+        ratio = elapsed / float(self.decay_time)
+        _range = self.value - self.min_value
+        self.value = min(self.max_value, max(self.min_value, self.value - ratio * _range))
+        return self.value
+
+
 class Clamp(Node):
     Inputs = {
         "min_value": 0.0,
@@ -162,26 +189,73 @@ class Threshold(Node):
     def output(self):
         return self.min_value if self.value < self.threshold else self.max_value
 
-class MyTempo(wub.SafeTempo):
-    def __init__(self, trigger, *args):
-        wub.SafeTempo.__init__(self, *args)
-        self.trigger = trigger
+class Tempo(wub.Tempo):
+    def __init__(self, source, silence=None, method="default"):
+        self.source = source
+        bufsize = self.source.get_buffer_size()
+        srate = self.source.get_sample_rate()
+        super(Tempo, self).__init__(bufsize * 4, bufsize, srate, method)
+        if silence != None:
+            self.set_silence(silence)
+        self.bind(self.source)
+        self.hooks = []
 
-    def tempo(self, bpm, conf):
-        if conf > 0.1:
-            self.trigger.trigger()
+    def add_hook(self, hook):
+        self.hooks.append(hook)
 
-class TempoMonitor(object):
-    def __init__(self, trigger):
-        card = "plughw:1,0"
-        bufsize = 128
-        channels = 1
-        sample_rate = 44100
-        self.tempo = MyTempo(trigger, bufsize * 2, bufsize, sample_rate, "specdiff");
-        self.tempo.open()
-        self.source = wub.ALSAAudioSource(sample_rate, card, channels, bufsize)
-        self.source.open()
-        wub.start(self.source, self.tempo)
+    def tempo_callback(self, bpm=0.0, confidence=0.0):
+        self.bpm = bpm
+        self.confidence = confidence
+        for hook in self.hooks:
+            hook(self)
+
+class Pitch(wub.Pitch):
+    def __init__(self, source, silence=None, unit="midi", method="default"):
+        self.source = source
+        bufsize = self.source.get_buffer_size()
+        srate = self.source.get_sample_rate()
+        super(Pitch, self).__init__(bufsize * 4, bufsize, srate, method)
+        if unit != None:
+            self.set_unit(unit)
+        if silence != None:
+            self.set_silence(silence)
+        self.bind(self.source)
+        self.hooks = []
+
+    def add_hook(self, hook):
+        self.hooks.append(hook)
+
+    def pitch_callback(self, pitch=0.0, confidence=0.0):
+        self.pitch = pitch
+        self.confidence = confidence
+        for hook in self.hooks:
+            hook(self)
+
+class Onset(wub.Onset):
+    def __init__(self, source, silence=None, method="default"):
+        self.source = source
+        bufsize = self.source.get_buffer_size()
+        srate = self.source.get_sample_rate()
+        super(Onset, self).__init__(bufsize * 4, bufsize, srate, method)
+        if silence != None:
+            self.set_silence(silence)
+        self.bind(self.source)
+        self.hooks = []
+
+    def add_hook(self, hook):
+        self.hooks.append(hook)
+
+    def onset_callback(self, *args):
+        for hook in self.hooks:
+            hook(self)
+
+def build_source():
+    card = "plughw:1,0"
+    bufsize = 128
+    channels = 2
+    sample_rate = 44100
+    source = wub.ALSAAudioSource(card, sample_rate, channels, bufsize)
+    return source
 
 """
 t = Timer()
@@ -192,23 +266,58 @@ q = Modulo(value=t.time)
 brightness = Threshold(threshold=v.output, value=q.output)
 """
 
-decay = Decay(min_value=0.0, decay=0.1)
-tempo = TempoMonitor(decay)
+source = build_source()
+tempo = Tempo(source)
+onset = Onset(source, silence=-47)
+pitch = Pitch(source, silence=-47)
+decay = Decay(min_value=0.6, max_value=1.0,  decay=1.5)
+#decay = Neuron(min_value=0.1, decay=5)
+midi_scale = Scale(input_min=0, input_max=127, output_min=0, output_max=1)
+
+def tempo_decay_hook(_tempo):
+    if _tempo.confidence < 0.01:
+        return
+    decay.decay = (_tempo.bpm / 60.0) * 0.9
+    decay.trigger()
+
+def onset_decay_hook(_onset):
+    #decay.decay = (_tempo.bpm / 60.0) * 0.9
+    decay.trigger()
+
+def pitch_scale_hook(_pitch):
+    midi_scale.value = _pitch.pitch
+
+tempo.add_hook(tempo_decay_hook)
+onset.add_hook(onset_decay_hook)
+pitch.add_hook(pitch_scale_hook)
+source.start()
 
 t = Timer()
-h = Sin(period=10, angle=t.time)
-h = Clamp(value=h.output)
+sinwave = Sin(period=10, angle=t.time)
+
+"""
+def sin_hook(_tempo):
+    if _tempo.confidence < 0.01:
+        return
+    sinwave.period = (_tempo.bpm / 60.0) * 4
+tempo.add_hook(sin_hook)
+"""
+
+#h = Clamp(value=h.output)
 #s = Sin(period=20, angle=t.time, amplitude=0.25, center=0.25)
 #v = Sin(period=1, angle=t.time)
 #q = Modulo(value=t.time)
 #brightness = Threshold(threshold=v.output, value=q.output)
 
-c = HSV_RGB(hue=h.output, value=decay.output)
+#c = HSV_RGB(hue=sinwave.output, value=decay.output)
+#c = HSV_RGB(hue=midi_scale.output, value=decay.output)
+c = HSV_RGB(hue=midi_scale.output, saturation=0.9, value=0.5)
 pds = PowerSupply("192.168.1.121")
 fix1 = FixtureRGB(15)
 pds.append(fix1)
 
 while 1:
     fix1.rgb = c.rgb()
+    #print fix1.rgb
     pds.go()
     #time.sleep(.0001)
